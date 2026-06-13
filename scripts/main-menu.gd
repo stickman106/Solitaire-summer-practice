@@ -18,7 +18,7 @@ func _on_quit_pressed() -> void:
 
 
 func _on_new_game_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/Game.tscn")
+	get_tree().change_scene_to_file("res://scenes/Choice.tscn")
 
 
 func _on_leaderboard_pressed() -> void:

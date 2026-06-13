@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://w27asdog71wy"]
+
+[ext_resource type="Script" uid="uid://pvse8nqx3o3j" path="res://scripts/main-menu.gd" id="1_yqorp"]
+
+[node name="MainMenu" type="Control" unique_id=1305782511]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_yqorp")
+
+[node name="RecordLabel" type="Label" parent="." unique_id=423648844]
+layout_mode = 0
+offset_left = 765.0
+offset_top = 35.0
+offset_right = 964.0
+offset_bottom = 149.0
+accessibility_name = "RecordLabel"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=786772017]
+layout_mode = 0
+offset_left = 327.0
+offset_top = 3.0
+offset_right = 675.0
+offset_bottom = 407.0
+alignment = 1
+
+[node name="new_game" type="Button" parent="VBoxContainer" unique_id=558300356]
+layout_mode = 2
+text = "Играть"
+
+[node name="Leaderboard" type="Button" parent="VBoxContainer" unique_id=853709553]
+layout_mode = 2
+text = "Таблица лидеров"
+
+[node name="quit" type="Button" parent="VBoxContainer" unique_id=382169800]
+layout_mode = 2
+text = "Выход"
+
+[connection signal="pressed" from="VBoxContainer/new_game" to="." method="_on_new_game_pressed"]
+[connection signal="pressed" from="VBoxContainer/Leaderboard" to="." method="_on_leaderboard_pressed"]
+[connection signal="pressed" from="VBoxContainer/quit" to="." method="_on_quit_pressed"]

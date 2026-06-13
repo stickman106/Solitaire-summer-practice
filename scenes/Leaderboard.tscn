@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://1jdvn1o6od00"]
+
+[ext_resource type="Script" uid="uid://du1dletouveo4" path="res://scripts/leaderboard.gd" id="1_0tlxa"]
+
+[node name="Leaderboard" type="Control" unique_id=205801878]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_0tlxa")
+
+[node name="BackButton" type="Button" parent="." unique_id=553286270]
+layout_mode = 0
+offset_left = 36.0
+offset_top = 682.0
+offset_right = 175.0
+offset_bottom = 738.0
+accessibility_name = "BackButton"
+text = "Назад"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1791604420]
+layout_mode = 0
+offset_left = 376.0
+offset_top = 7.0
+offset_right = 671.0
+offset_bottom = 103.0
+
+[node name="Label" type="Label" parent="VBoxContainer" unique_id=1187097464]
+layout_mode = 2
+text = "Таблица лидеров"
+horizontal_alignment = 1
+
+[node name="ScoreList" type="VBoxContainer" parent="VBoxContainer" unique_id=34333893]
+layout_mode = 2
+accessibility_name = "ScoreList"
+
+[connection signal="pressed" from="BackButton" to="." method="_on_back_button_pressed"]

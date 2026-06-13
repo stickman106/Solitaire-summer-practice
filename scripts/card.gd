@@ -26,6 +26,8 @@ func _input(event):
 		
 	# When user presses on stock then we need to shuffle top cards
 	if Input.is_action_just_pressed("left_click") and stock:
+		if GameManager.deck.is_empty():
+			return
 		update_stock_top()
 		return
 	
@@ -72,14 +74,12 @@ func can_move_to(target_card):
 	return false
 
 func move_to_new_pile(new_card):
-	# Move pile card
+	# Перемещение из обычной кучки
 	if pile_id != null:
 		var current_pile = GameManager.piles[pile_id]
 		var current_card_index = current_pile.find(self)
-		
 		var new_pile = GameManager.piles[new_card.pile_id]
 		
-		# Move cards from current_pile to new_pile
 		var cards_to_move = current_pile.slice(current_card_index, len(current_pile))
 		for i in range(len(cards_to_move)):
 			var card = cards_to_move[i]
@@ -91,17 +91,18 @@ func move_to_new_pile(new_card):
 			card.pile_id = new_card.pile_id
 			new_pile.append(card)
 		
-		# Remove the top cards from old pile
 		for i in range(len(cards_to_move)):
 			current_pile.pop_back()
 		
-		# Flip the top-most card of previous pile after moving
 		if len(current_pile) > 1:
 			current_pile.back().flip()
 	
-	# move from stock
+	# Перемещение из стока
 	elif pile_id == null:
-		var new_pile = GameManager.piles[new_card.pile_id]
+		if GameManager.deck.is_empty():
+			return
+		
+		var new_pile = GameManager.piles[new_card.pile_id]  # определяем new_pile здесь
 		var card = GameManager.deck.pop_back()
 		card.stock = false
 		card.position = GameManager.get_pile_position(
@@ -112,45 +113,62 @@ func move_to_new_pile(new_card):
 		card.pile_id = new_card.pile_id
 		new_pile.append(card)
 		
-		# Flip card in the stock
-		# Only if there are 2 cards or more.
-		# 1 card wouldb e the stock itself
-		if len(GameManager.deck) > 1:
+		if not GameManager.deck.is_empty():
 			var card_on_stock = GameManager.deck[-1]
 			card_on_stock.stock = false
 			card_on_stock.flip()
 			card_on_stock.position = GameManager.get_pile_position(
 				0, 0, GameManager.PILE_X_OFFSET - 200, GameManager.PILE_Y_OFFSET + 200
 			)
-		var board = _get_board()
+		
+		var board = get_tree().get_first_node_in_group("board")
 		if board:
 			board.update_stock_count()
 	
 	previous_positions = []
-	if check_win():
+	get_tree().get_first_node_in_group("board").increment_moves()
+	if get_tree().get_first_node_in_group("board").check_win():
 		print("YOU WON!!")
 
 func update_stock_top():
-	# Remove current stock top and place it at the beginning of the stock
+	# Если сток пуст — ничего не делаем
+	if GameManager.deck.is_empty():
+		return
+	
+	# Берём верхнюю карту стока (последнюю в массиве)
 	var cur_stock_top = GameManager.deck.pop_back()
 	cur_stock_top.flip()
 	cur_stock_top.stock = true
-	var pos = cur_stock_top.position
+	var old_position = cur_stock_top.position  # позиция стопки
+	
+	# Если это была последняя карта
+	if GameManager.deck.is_empty():
+		# Перемещаем её вниз как активную карту
+		cur_stock_top.stock = false
+		cur_stock_top.position = GameManager.get_pile_position(
+			0, 0, GameManager.PILE_X_OFFSET - 200, GameManager.PILE_Y_OFFSET + 200
+		)
+		# Обновляем счётчик
+		var board = get_tree().get_first_node_in_group("board")
+		if board:
+			board.update_stock_count()
+		return
+	
+	# Если карт больше одной — перекладываем верхнюю вниз стопки
 	cur_stock_top.position = GameManager.deck[0].position
-	
 	GameManager.deck.insert(0, cur_stock_top)
-	var board = _get_board()
-	if board:
-		board.update_stock_count()
 	
-	# The top card out of stock would be already out, so don't include that.
+	# Открываем новую верхнюю карту
 	if len(GameManager.deck) > 1:
 		var new_card = GameManager.deck[-1]
 		new_card.stock = false
 		new_card.flip()
-		new_card.position = pos
-
+		new_card.position = old_position
 	
+	# Обновляем счётчик
+	var board = get_tree().get_first_node_in_group("board")
+	if board:
+		board.update_stock_count()
 
 func check_win():
 	if len(GameManager.deck) > 0:

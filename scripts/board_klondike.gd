@@ -81,14 +81,7 @@ func force_win(record_score = true):
 				ScoreManager.add_score(name, moves)
 		show_game_over_dialog()
 	else:
-		var dialog = AcceptDialog.new()
-		dialog.title = "Чит-победа!"
-		dialog.dialog_text = "Вы победили, но рекорд не засчитан."
-		add_child(dialog)
-		dialog.popup_centered()
-		await dialog.confirmed
-		dialog.queue_free()
-		call_deferred("return_to_menu")
+		check_win()
 
 func return_to_menu():
 	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")

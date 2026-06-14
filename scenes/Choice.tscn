@@ -18,9 +18,9 @@ offset_bottom = 218.0
 layout_mode = 2
 text = "Класика(косынка)"
 
-[node name="Button2" type="Button" parent="VBoxContainer" unique_id=2118109539]
+[node name="Easy" type="Button" parent="VBoxContainer" unique_id=2118109539]
 layout_mode = 2
-text = "Заглушка
+text = "Легкий читы
 "
 
 [node name="Button" type="Button" parent="." unique_id=1101689681]
@@ -32,4 +32,5 @@ offset_bottom = 717.0
 text = "Назад"
 
 [connection signal="pressed" from="VBoxContainer/Klondike" to="." method="_on_klondike_pressed"]
+[connection signal="pressed" from="VBoxContainer/Easy" to="." method="_on_easy_pressed"]
 [connection signal="pressed" from="Button" to="." method="_on_button_pressed"]

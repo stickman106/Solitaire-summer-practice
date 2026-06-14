@@ -17,3 +17,7 @@ func _on_klondike_pressed() -> void:
 
 func _on_button_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+
+
+func _on_easy_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/Game_easy.tscn")

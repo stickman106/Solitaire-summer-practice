@@ -1,6 +1,8 @@
 [gd_scene format=3 uid="uid://w27asdog71wy"]
 
 [ext_resource type="Script" uid="uid://pvse8nqx3o3j" path="res://scripts/main-menu.gd" id="1_yqorp"]
+[ext_resource type="Texture2D" uid="uid://bie0n7lct66lm" path="res://card_assets/Q6.png" id="2_2wh52"]
+[ext_resource type="Texture2D" uid="uid://c36hkyyqgoejl" path="res://card_assets/K6.png" id="3_ow34m"]
 
 [node name="MainMenu" type="Control" unique_id=1305782511]
 layout_mode = 3
@@ -34,6 +36,18 @@ text = "Таблица лидеров"
 [node name="quit" type="Button" parent="VBoxContainer" unique_id=382169800]
 layout_mode = 2
 text = "Выход"
+
+[node name="Q6" type="Sprite2D" parent="." unique_id=2105120680]
+position = Vector2(30, 725)
+rotation = 0.8150688
+scale = Vector2(2.985294, 3.0700002)
+texture = ExtResource("2_2wh52")
+
+[node name="K6" type="Sprite2D" parent="." unique_id=1786665557]
+position = Vector2(957.5, 369.5)
+rotation = -0.4660029
+scale = Vector2(3.3970587, 2.91)
+texture = ExtResource("3_ow34m")
 
 [connection signal="pressed" from="VBoxContainer/new_game" to="." method="_on_new_game_pressed"]
 [connection signal="pressed" from="VBoxContainer/Leaderboard" to="." method="_on_leaderboard_pressed"]

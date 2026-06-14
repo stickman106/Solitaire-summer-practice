@@ -1,82 +1,9 @@
 [gd_scene format=3 uid="uid://ds1b086i1q0rj"]
 
-[sub_resource type="GDScript" id="GDScript_s1etu"]
-script/source = "extends \"res://scripts/board_base.gd\"
-
-func init_game():
-	clear_cards()          # удаляем старые карты
-	clear_game_state()
-	init_deck()
-	deal_cards()
-	place_stock_pile()
-	moves = 0
-	update_ui()
-
-func deal_cards():
-	for i in range(GameManager.NO_OF_PILES):
-		var pile = GameManager.piles[i]
-		var empty_card = get_empty_card()
-		empty_card.pile_id = i
-		empty_card.position = GameManager.get_pile_position(i, 0, GameManager.PILE_X_OFFSET, GameManager.PILE_Y_OFFSET)
-		pile.append(empty_card)
-		add_child(empty_card)
-		for j in range(0, i + 1):
-			var card = GameManager.deck.pop_back()
-			card.z_index = j
-			if j == i:
-				card.flip()
-			card.position = GameManager.get_pile_position(i, j, GameManager.PILE_X_OFFSET, GameManager.PILE_Y_OFFSET)
-			card.pile_id = i
-			pile.append(card)
-			add_child(card)
-
-func place_stock_pile():
-	# Запоминаем позиции
-	stock_closed_pos = GameManager.get_pile_position(0, 0, GameManager.PILE_X_OFFSET - 200, GameManager.PILE_Y_OFFSET)
-	stock_open_pos = GameManager.get_pile_position(0, 0, GameManager.PILE_X_OFFSET - 200, GameManager.PILE_Y_OFFSET + 200)
-
-	# Все карты, оставшиеся в GameManager.deck, переносим в stock_cards
-	for card in GameManager.deck:
-		card.stock = true
-		card.flip()            # они должны быть закрыты
-		card.position = stock_closed_pos
-		add_child(card)
-		stock_cards.append(card)
-
-	GameManager.deck.clear()   # больше не используем deck для стока
-
-	# Если есть хотя бы одна карта, открываем верхнюю
-	if stock_cards.size() > 0:
-		stock_open_card = stock_cards.pop_back()
-		stock_open_card.stock = false
-		stock_open_card.flip()
-		stock_open_card.position = stock_open_pos
-
-# Лёгкие правила: можно класть любую карту на любую открытую
-func is_valid_move(card: Area2D, target_card: Area2D) -> bool:
-	if target_card.pile_id == null or target_card.pile_id == card.pile_id:
-		return false
-	var pile = GameManager.piles[target_card.pile_id]
-	if len(pile) == 1 and target_card.suit == -1 and target_card.value == -1:
-		return true
-	if not target_card.flipped:
-		return false
-	return true
-
-# Победа, когда все карты собраны в одной кучке (не считая пустышек)
-func check_win() -> bool:
-	var non_empty_piles = 0
-	for pile in GameManager.piles:
-		if pile.size() > 1:
-			non_empty_piles += 1
-	if non_empty_piles == 1 and len(GameManager.deck) == 0:
-		win_game()
-		return true
-	return false
-"
+[ext_resource type="Script" uid="uid://bhvih8we4umox" path="res://scripts/board_easy.gd" id="1_00rv2"]
 
 [node name="Board" type="Node2D" unique_id=1542113061]
-script = SubResource("GDScript_s1etu")
+script = ExtResource("1_00rv2")
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=210856203]
 

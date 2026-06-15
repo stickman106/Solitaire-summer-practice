@@ -26,7 +26,7 @@ ScoreManager="*uid://1sqmy7rff7wf"
 
 [display]
 
-window/size/viewport_width=1024
+window/size/viewport_width=1180
 window/size/viewport_height=768
 window/stretch/mode="canvas_items"
 

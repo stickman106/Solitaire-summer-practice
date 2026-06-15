@@ -1,6 +1,6 @@
 extends Node
 
-const NO_OF_PILES = 6
+const NO_OF_PILES = 7
 
 var deck = []
 var piles = []

@@ -19,11 +19,9 @@ func add_score(name: String, moves: int):
 	# сортировка по возрастанию ходов
 	scores.sort_custom(func(a, b): return a["moves"] < b["moves"])
 	
-	# оставляем только MAX_SCORES лучших
 	if scores.size() > MAX_SCORES:
 		scores = scores.slice(0, MAX_SCORES)
 	
-	# обновляем рекорд
 	if moves < best_score:
 		best_score = moves
 	

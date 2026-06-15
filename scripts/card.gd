@@ -8,40 +8,79 @@ var is_dragging:bool = false
 var pile_id = null
 var stock:bool = false
 var is_mouse_entered:bool = false
-var previous_positions = []
+var previous_positions = []      # список { "position": Vector2, "z_index": int }
+var dragged_group = []           # карты, которые перетаскиваются
 
 @onready var sprite:Sprite2D = $Sprite2D
 
-# Called when the node enters the scene tree for the first time.
 func _ready():
 	update_sprite()
 
-func _input(event):
-	# Handle all card drag events
+# --------------------------------------------
+#  возвращает список карт для перетаскивания, если текущая карта является "разрешённой"
+#
+# Если карта не подходит, возвращается пустой массив.
+# --------------------------------------------
+func get_valid_drag_group():
+	if pile_id == null:
+		# карта из стока – всегда разрешена (одна карта)
+		return [self]
 	
-	# don't move card if mouse is not on the card
-	# don't move empty card
+	var pile = GameManager.piles[pile_id]
+	if pile.size() <= 1:
+		return []
+	
+	# Собираем все РЕАЛЬНЫЕ открытые карты в стопке (исключая пустышку и закрытые)
+	var open_cards = []
+	for card in pile:
+		if card.value >= 0 and card.flipped:   # реальная карта и открыта
+			open_cards.append(card)
+	
+	if open_cards.is_empty():
+		return []
+	
+	var top_open = open_cards[-1]          # верхняя открытая
+	var bottom_open = open_cards[0]        # нижняя открытая
+	
+	# Если текущая карта - верхняя открытая
+	if self == top_open:
+		return [self]      # переносим только одну карту
+	
+	# Если текущая карта - нижняя открытая (и при этом открытых карт больше одной)
+	if self == bottom_open and open_cards.size() > 1:
+		return open_cards.duplicate()   # переносим все открытые карты
+	
+	# Во всех остальных случаях (клик по середине группы открытых) - запрещено
+	return []
+
+# --------------------------------------------
+# _input с проверкой разрешённой карты
+# --------------------------------------------
+func _input(event):
 	if not is_mouse_entered or (suit == -1 and value == -1):
 		return
 		
-	# When user presses on stock then we need to shuffle top cards
 	if Input.is_action_just_pressed("left_click") and stock:
 		if GameManager.deck.is_empty():
 			return
 		update_stock_top()
 		return
 	
-	# Can move only the top card
 	if Input.is_action_just_pressed("left_click") and flipped:
+		# проверяем, можно ли перетаскивать эту карту
+		var drag_group = get_valid_drag_group()
+		if drag_group.is_empty():
+			return   # запрещено перетаскивание
 		is_dragging = true
-		# If user doesn't want to move card or is doing invalid move, then we need to reset positions of selected cards
-		remember_card_positions()
+		remember_card_positions(drag_group)
 	elif event is InputEventMouseMotion and is_dragging:
 		move_cards()
 	elif Input.is_action_just_released("left_click") and is_dragging:
 		is_dragging = false
 		if !drop_card():
 			reset_cards()
+		dragged_group.clear()
+
 func _get_board():
 	return get_tree().get_first_node_in_group("board")
 		
@@ -54,7 +93,6 @@ func update_sprite():
 func get_texture():
 	if not flipped or (suit == -1 and value == -1):
 		return preload("res://card_assets/Back1.png")
-
 	var res_path = "res://card_assets/{value}.{suit}.png".format({
 		"value": str(value + 1),
 		"suit": str(suit + 1)
@@ -65,51 +103,57 @@ func flip():
 	flipped = !flipped
 	update_sprite()
 
-# Game Logic
-
 func can_move_to(target_card):
 	var board = get_tree().get_first_node_in_group("board")
 	if board:
 		return board.is_valid_move(self, target_card)
 	return false
 
+# --------------------------------------------
+# Перемещение в новую стопку (адаптировано под dragged_group)
+# --------------------------------------------
 func move_to_new_pile(new_card):
-	# Перемещение из обычной кучки
 	if pile_id != null:
 		var current_pile = GameManager.piles[pile_id]
-		var current_card_index = current_pile.find(self)
 		var new_pile = GameManager.piles[new_card.pile_id]
 		
-		var cards_to_move = current_pile.slice(current_card_index, len(current_pile))
+		var cards_to_move = dragged_group.duplicate()   # используем уже сохранённую группу
+		if cards_to_move.is_empty():
+			return
+		
+		var base_z = new_pile[-1].z_index if new_pile.size() > 0 else 0
 		for i in range(len(cards_to_move)):
 			var card = cards_to_move[i]
 			card.position = GameManager.get_pile_position(
 				new_card.pile_id, len(new_pile) - 1,
 				GameManager.PILE_X_OFFSET, GameManager.PILE_Y_OFFSET
 			)
-			card.z_index = new_pile[-1].z_index + 1
+			card.z_index = base_z + i + 1
 			card.pile_id = new_card.pile_id
 			new_pile.append(card)
 		
+		# Удаляем перемещённые карты из старой стопки (они находятся в конце)
 		for i in range(len(cards_to_move)):
 			current_pile.pop_back()
 		
-		if len(current_pile) > 1:
-			current_pile.back().flip()
+		# Если в старой стопке остались реальные карты, переворачиваем верхнюю
+		if current_pile.size() > 1:
+			var top_card = current_pile.back()
+			if not top_card.flipped:
+				top_card.flip()
 	
-	# Перемещение из стока
 	elif pile_id == null:
+		# Перемещение из стока (без изменений)
 		if GameManager.deck.is_empty():
 			return
-		
-		var new_pile = GameManager.piles[new_card.pile_id]  # определяем new_pile здесь
+		var new_pile = GameManager.piles[new_card.pile_id]
 		var card = GameManager.deck.pop_back()
 		card.stock = false
 		card.position = GameManager.get_pile_position(
 			new_card.pile_id, len(new_pile) - 1,
 			GameManager.PILE_X_OFFSET, GameManager.PILE_Y_OFFSET
 		)
-		card.z_index = new_pile[-1].z_index + 1
+		card.z_index = new_pile[-1].z_index + 1 if new_pile.size() > 0 else 0
 		card.pile_id = new_card.pile_id
 		new_pile.append(card)
 		
@@ -126,131 +170,102 @@ func move_to_new_pile(new_card):
 			board.update_stock_count()
 	
 	previous_positions = []
+	dragged_group.clear()
 	get_tree().get_first_node_in_group("board").increment_moves()
 	if get_tree().get_first_node_in_group("board").check_win():
 		print("YOU WON!!")
 
+# --------------------------------------------
+# Логика стока (без изменений)
+# --------------------------------------------
 func update_stock_top():
-	# Если сток пуст — ничего не делаем
 	if GameManager.deck.is_empty():
 		return
-	
-	# Берём верхнюю карту стока (последнюю в массиве)
 	var cur_stock_top = GameManager.deck.pop_back()
 	cur_stock_top.flip()
 	cur_stock_top.stock = true
-	var old_position = cur_stock_top.position  # позиция стопки
+	var old_position = cur_stock_top.position
 	
-	# Если это была последняя карта
 	if GameManager.deck.is_empty():
-		# Перемещаем её вниз как активную карту
 		cur_stock_top.stock = false
 		cur_stock_top.position = GameManager.get_pile_position(
 			0, 0, GameManager.PILE_X_OFFSET - 200, GameManager.PILE_Y_OFFSET + 200
 		)
-		# Обновляем счётчик
 		var board = get_tree().get_first_node_in_group("board")
 		if board:
 			board.update_stock_count()
 		return
 	
-	# Если карт больше одной — перекладываем верхнюю вниз стопки
 	cur_stock_top.position = GameManager.deck[0].position
 	GameManager.deck.insert(0, cur_stock_top)
 	
-	# Открываем новую верхнюю карту
 	if len(GameManager.deck) > 1:
 		var new_card = GameManager.deck[-1]
 		new_card.stock = false
 		new_card.flip()
 		new_card.position = old_position
 	
-	# Обновляем счётчик
 	var board = get_tree().get_first_node_in_group("board")
 	if board:
 		board.update_stock_count()
 
-func check_win():
-	if len(GameManager.deck) > 0:
-		return false
-	for pile in GameManager.piles:
-		for card in pile:
-			if not card.flipped:
-				return false
-	return true
-
-#### Mouse Movement Functions
-
+# --------------------------------------------
+# Визуальное перетаскивание
+# --------------------------------------------
 func move_cards():
-	# Move the selected cards
 	if pile_id == null:
 		position = get_global_mouse_position()
-		z_index = 100 
+		z_index = 100
 		return
 	
-	# First find the selected card
-	var pile = GameManager.piles[pile_id]
-	var current_card_index = pile.find(self)
-	if len(pile) > current_card_index:
-		# We need to move selected set of cards
-		var cards_to_move = pile.slice(current_card_index, len(pile))
-		for i in range(len(cards_to_move)):
-			var card = cards_to_move[i]
-			card.position = get_global_mouse_position()
-			
-			# Apply vertical width to separate multiple cards 
-			card.position.y += 30 * i
-			
-			# Apply high z-index to have the moving card appear infront of all other piles
-			card.z_index = 100 + i
+	if dragged_group.is_empty():
+		return
+	
+	var mouse_pos = get_global_mouse_position()
+	for i in range(len(dragged_group)):
+		var card = dragged_group[i]
+		card.position = mouse_pos
+		card.position.y += 30 * i
+		card.z_index = 100 + i
 
 func drop_card():
-	# If card is moved to a valid set, then we need to move it.
 	var overlapping_areas = get_overlapping_areas()
 	for area in overlapping_areas:
-		# Need to detect other card
 		if area.is_in_group("card"):
 			if can_move_to(area):
 				move_to_new_pile(area)
 				return true
-
-	# If cards cannot be moved, then we need to reset the state
 	return false
 
-func remember_card_positions():
+func remember_card_positions(drag_group):
 	previous_positions = []
-	# Stock cards are not part of pile
+	dragged_group = drag_group.duplicate()
+	
 	if pile_id == null:
 		previous_positions.append({
-			"position": position
+			"position": position,
+			"z_index": z_index
 		})
 		z_index = 100
 		return
-		
-	var pile = GameManager.piles[pile_id]
-	var current_card_index = pile.find(self)
-	if len(pile) > current_card_index:
-		# We need to move selected set of cards
-		var cards_to_move = pile.slice(current_card_index, len(pile))
-		for card in cards_to_move:
-			previous_positions.append({
-				"position": card.position
-			})
+	
+	for card in dragged_group:
+		previous_positions.append({
+			"position": card.position,
+			"z_index": card.z_index
+		})
 
 func reset_cards():
 	if pile_id == null:
-		position = previous_positions[0]['position']
-		z_index = 1
+		if previous_positions.size() > 0:
+			position = previous_positions[0]['position']
+			z_index = previous_positions[0]['z_index']
 	else:
-		var pile = GameManager.piles[pile_id]
-		var current_card_index = pile.find(self)
-		if len(pile) > current_card_index:
-			# We need to reset positions of selected set of cards
-			var cards_to_move = pile.slice(current_card_index, len(pile))
-			for i in range(len(previous_positions)):
-				var card = cards_to_move[i]
+		for i in range(len(dragged_group)):
+			var card = dragged_group[i]
+			if i < previous_positions.size():
 				card.position = previous_positions[i]['position']
-				card.z_index = pile[current_card_index - 1].z_index + i + 1
+				card.z_index = previous_positions[i]['z_index']
 	previous_positions = []
 
 func _on_mouse_entered():
